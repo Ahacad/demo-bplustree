@@ -1,5 +1,9 @@
 package bplustree
 
+import (
+	"sort"
+)
+
 type kc struct {
 	key   int
 	child node
@@ -38,3 +42,17 @@ func newInteriorNode(p *interiorNode, largestChild node) *interiorNode {
 	}
 	return i
 }
+
+func (in *interiorNode) find(key int) (int, bool) {
+	c := func(i int) bool { return in.kcs[i].key > key }
+
+	i := sort.Search(in.count-1, c)
+
+	return i, true
+}
+
+func (in *interiorNode) full() bool { return in.count == MAXKC }
+
+func (in *interiorNode) parent() *interiorNode { return in.p }
+
+func (in *interiorNode) setParent(p *interiorNode) { in.p = p }
