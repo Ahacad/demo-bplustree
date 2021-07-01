@@ -56,3 +56,48 @@ func (in *interiorNode) full() bool { return in.count == MAXKC }
 func (in *interiorNode) parent() *interiorNode { return in.p }
 
 func (in *interiorNode) setParent(p *interiorNode) { in.p = p }
+
+func (in *interiorNode) insert(key int, child node) (int, *interiorNode, bool) {
+	i, _ := in.find(key)
+
+	if !in.full() {
+		copy(in.kcs[i+1:], in.kcs[i:in.count])
+		in.kcs[i].key = key
+		in.kcs[i].child = child
+		child.setParent(in)
+
+		in.count++
+		return 0, nil, false
+	}
+
+	in.kcs[MAXKC].key = key
+	in.kcs[MAXKC].child = child
+	child.setParent(in)
+
+	next, midKey := in.split()
+
+	return midKey, next, true
+}
+
+func (in *interiorNode) split() (*interiorNode, int) {
+	sort.Sort(&in.kcs)
+
+	midIndex := MAXKC / 2
+	midChild := in.kcs[midIndex].child
+	midKey := in.kcs[midIndex].key
+
+	next := newInteriorNode(nil, nil)
+	copy(next.kcs[0:], in.kcs[midIndex+1:])
+	next.count = MAXKC - midIndex
+
+	for i := 0; i < next.count; i++ {
+		next.kcs[i].child.setParent(next)
+	}
+
+	in.count = midIndex + 1
+	in.kcs[in.count-1].key = 0
+	in.kcs[in.count-1].child = midChild
+	midChild.setParent(in)
+
+	return next, midKey
+}
