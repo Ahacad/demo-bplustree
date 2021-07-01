@@ -26,4 +26,79 @@ func (bt *BTree) First() *leafNode {
 }
 
 // insert key-value into bplustree
-func (bt *BTree) Insert(key int, value string) {}
+func (bt *BTree) Insert(key int, value string) {
+	_, oldIndex, leaf := search(bt.root, key)
+	p := leaf.parent()
+
+	mid, bump := leaf.insert(key, value)
+	if !bump {
+		return
+	}
+
+	var midNode node
+	midNode = leaf
+
+	p.kcs[oldIndex].child = leaf.next
+	leaf.next.setParent(p)
+
+	interior, interiorP := p, p.parent()
+
+	for {
+		var oldIndex int
+		var newNode *interiorNode
+		isRoot := interiorP == nil
+
+		if !isRoot {
+			oldIndex, _ = interiorP.find(key)
+		}
+
+		mid, newNode, bump = interior.insert(mid, midNode)
+		if !bump {
+			return
+		}
+
+		if !isRoot {
+			interiorP.kcs[oldIndex].child = newNode
+			newNode.setParent(interiorP)
+			midNode = interior
+		} else {
+			bt.root = newInteriorNode(nil, newNode)
+			newNode.setParent(bt.root)
+
+			bt.root.insert(mid, interior)
+			return
+		}
+		interior, interiorP = interiorP, interior.parent()
+	}
+
+}
+
+func (bt *BTree) Search(key int) (string, bool) {
+	kv, _, _ := search(bt.root, key)
+	if kv == nil {
+		return "", false
+	}
+	return kv.value, true
+}
+
+func search(n node, key int) (*kv, int, *leafNode) {
+	curr := n
+	oldIndex := -1
+
+	for {
+		switch t := curr.(type) {
+		case *leafNode:
+			i, ok := t.find(key)
+			if !ok {
+				return nil, oldIndex, t
+			}
+			return &t.kvs[i], oldIndex, t
+		case *interiorNode:
+			i, _ := t.find(key)
+			curr = t.kcs[i].child
+			oldIndex = i
+		default:
+			panic("")
+		}
+	}
+}
